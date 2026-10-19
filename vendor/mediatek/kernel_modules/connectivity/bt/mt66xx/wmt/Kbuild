@@ -1,5 +1,8 @@
 ###############################################################################
 # Bluetooth character device driver
+# Where this repository is checked out; MediaTek's own build has it at
+# vendor/mediatek/kernel_modules at the top of the source tree.
+MTK_KERNEL_MODULES_PATH ?= $(TOP)/vendor/mediatek/kernel_modules
 
 ###############################################################################
 # Support GKI mixed build
@@ -69,7 +72,7 @@ endif
 ###############################################################################
 # To include BT driver dependent header file
 
-WMT_SRC_FOLDER := $(TOP)/vendor/mediatek/kernel_modules/connectivity/common
+WMT_SRC_FOLDER := $(MTK_KERNEL_MODULES_PATH)/connectivity/common
 ccflags-y += -I$(WMT_SRC_FOLDER)/common_main/include
 ccflags-y += -I$(WMT_SRC_FOLDER)/common_main/linux/include
 ifneq ($(CONFIG_MTK_CONNSYS_DEDICATED_LOG_PATH),)

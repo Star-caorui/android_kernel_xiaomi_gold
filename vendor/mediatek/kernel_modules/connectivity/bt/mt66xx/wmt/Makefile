@@ -1,12 +1,19 @@
+# Where this repository is checked out; MediaTek's own build has it at
+# vendor/mediatek/kernel_modules next to the output directory.
+MTK_KERNEL_MODULES_PATH ?= $(OUT_DIR)/../vendor/mediatek/kernel_modules
+# Where the build put this repository's modules (their Module.symvers):
+# the checkout itself, unless the external modules are built elsewhere.
+MTK_KERNEL_MODULES_OUT ?= $(MTK_KERNEL_MODULES_PATH)
+
 $(info [bt_drv] wmt/makefile start)
 
 
 LOG_TAG := [BT_Drv][wmt]
 ifneq ($(wildcard $(KERNEL_SRC)/$(DEVICE_MODULES_REL_DIR)/Makefile.include),)
 include $(KERNEL_SRC)/$(DEVICE_MODULES_REL_DIR)/Makefile.include
-extra_symbols := $(abspath $(OUT_DIR)/../vendor/mediatek/kernel_modules/connectivity/common/Module.symvers)
+extra_symbols := $(abspath $(MTK_KERNEL_MODULES_OUT)/connectivity/common/Module.symvers)
 else
-extra_symbols := $(abspath $(O)/../vendor/mediatek/kernel_modules/connectivity/common/Module.symvers)
+extra_symbols := $(abspath $(MTK_KERNEL_MODULES_OUT)/connectivity/common/Module.symvers)
 endif
 
 

@@ -1,8 +1,15 @@
+# Where this repository is checked out; MediaTek's own build has it at
+# vendor/mediatek/kernel_modules next to the output directory.
+MTK_KERNEL_MODULES_PATH ?= $(OUT_DIR)/../vendor/mediatek/kernel_modules
+# Where the build put this repository's modules (their Module.symvers):
+# the checkout itself, unless the external modules are built elsewhere.
+MTK_KERNEL_MODULES_OUT ?= $(MTK_KERNEL_MODULES_PATH)
+
 include $(wildcard $(KERNEL_SRC)/$(DEVICE_MODULES_REL_DIR)/Makefile.include)
 
-EXTRA_SYMBOLS += $(OUT_DIR)/../vendor/mediatek/kernel_modules/met_drv_v3/Module.symvers
+EXTRA_SYMBOLS += $(MTK_KERNEL_MODULES_OUT)/met_drv_v3/Module.symvers
 ifneq ($(wildcard $(CURDIR)/../../met_drv_secure_v3),)
-EXTRA_SYMBOLS += $(OUT_DIR)/../vendor/mediatek/kernel_modules/met_drv_secure_v3/Module.symvers
+EXTRA_SYMBOLS += $(MTK_KERNEL_MODULES_OUT)/met_drv_secure_v3/Module.symvers
 endif
 
 modules modules_install clean:
