@@ -41,6 +41,14 @@
 #include <mali_linux_trace.h>
 #include <mali_kbase_caps.h>
 
+/* Huaqin's real-time priority for the done worker, as in its N6 tree (HQ-358533,
+ * MiCode's emerald_r-u-oss), for sched_setscheduler() and SCHED_RR */
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 10, 0)
+#include <uapi/linux/sched/types.h>
+#include <linux/sched/types.h>
+#endif
+#include <linux/kernel.h>
+
 /* Return whether katom will run on the GPU or not. Currently only soft jobs and
  * dependency-only atoms do not run on the GPU
  */
@@ -1150,6 +1158,7 @@ void kbase_jd_done_worker(struct work_struct *data)
 	struct kbasep_js_atom_retained_state katom_retained_state;
 	bool context_idle;
 	base_jd_core_req core_req = katom->core_req;
+	struct sched_param param = { .sched_priority = 48 };
 
 	/* Soft jobs should never reach this function */
 	KBASE_DEBUG_ASSERT((katom->core_req & BASE_JD_REQ_SOFT_JOB) == 0);
@@ -1159,6 +1168,13 @@ void kbase_jd_done_worker(struct work_struct *data)
 	kbdev = kctx->kbdev;
 	js_kctx_info = &kctx->jctx.sched_info;
 	js_devdata = &kbdev->js_data;
+
+	/* Stock finishes atoms at real-time priority (SCHED_RR 48). This sets
+	 * the policy of the kworker that runs this, and the kworker keeps it
+	 * for whatever it runs next: the workqueue's threads are shared with
+	 * other unbound high-priority work. Kept as stock does.
+	 */
+	sched_setscheduler(current, SCHED_RR, &param);
 
 	dev_dbg(kbdev->dev, "Enter atom %pK done worker for kctx %pK\n", (void *)katom,
 		(void *)kctx);
