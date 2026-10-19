@@ -1729,6 +1729,8 @@ void nicRxGetNoiseLevelAndLastRate(struct ADAPTER *prAdapter,
 void nicRxEnqueuePendingQueue(struct ADAPTER *prAdapter,
 	struct STA_RECORD *prStaRec, struct SW_RFB *prSwRfb)
 {
+	uint8_t ucBssIndex;
+
 	if (!prAdapter || !prStaRec || !prSwRfb)
 		return;
 
@@ -1740,8 +1742,8 @@ void nicRxEnqueuePendingQueue(struct ADAPTER *prAdapter,
 		prSwRfb,
 		GLUE_IS_PKT_FLAG_SET(prSwRfb->pvPacket));
 
-	RX_PENDING_INC_BSS_CNT(&prAdapter->rRxCtrl,
-		prStaRec->ucBssIndex);
+	ucBssIndex = prStaRec->ucBssIndex;
+	RX_PENDING_INC_BSS_CNT(&prAdapter->rRxCtrl, ucBssIndex);
 
 #if CFG_RFB_TRACK
 	RX_RFB_TRACK_UPDATE(prAdapter, prSwRfb, RFB_TRACK_RX_PENDING);
@@ -2176,7 +2178,7 @@ void nicRxProcessEventPacket(struct ADAPTER *prAdapter,
 
 	/* Event cannot be found in event handler table, use default action */
 	if (u4Idx >= u4Size) {
-		DBGLOG(RX, INFO, "Not static config event: id=0x%02X, seq=%u",
+		DBGLOG(RX, TRACE, "Not static config event: id=0x%02X, seq=%u",
 				prEvent->ucEID, prEvent->ucSeqNum);
 		prCmdInfo = nicGetPendingCmdInfo(prAdapter,
 						prEvent->ucSeqNum);

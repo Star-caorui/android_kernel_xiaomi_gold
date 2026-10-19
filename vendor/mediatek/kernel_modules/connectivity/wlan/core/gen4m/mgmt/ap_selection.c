@@ -45,6 +45,9 @@
 #define CHNL_DWELL_TIME_DEFAULT  100
 #define CHNL_DWELL_TIME_ONLINE   50
 
+/* Do not select the AP by the framework's bssid_hint */
+#define CFG_ENABLE_BSSID_HINT     0
+
 #define WEIGHT_IDX_CHNL_UTIL                    0
 #define WEIGHT_IDX_RSSI                         2
 #define WEIGHT_IDX_SCN_MISS_CNT                 2
@@ -1582,6 +1585,7 @@ try_again:
 						"Do network selection even match bssid_hint\n");
 				} else
 #endif
+#if CFG_ENABLE_BSSID_HINT
 				{
 					log_dbg(SCN, INFO,
 						MACSTR" match bssid_hint\n",
@@ -1589,6 +1593,12 @@ try_again:
 					prCandBssDesc = prBssDesc;
 					break;
 				}
+#else
+				{
+					log_dbg(SCN, INFO,
+						"bssid_hint selection disabled\n");
+				}
+#endif
 			}
 		}
 

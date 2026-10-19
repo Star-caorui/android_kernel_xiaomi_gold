@@ -514,8 +514,7 @@ static void halDriverOwnTimeout(struct ADAPTER *prAdapter,
 #else  /* !IS_ENABLED(CFG_MTK_WIFI_DRV_OWN_INT_MODE) */
 			{
 #endif /* IS_ENABLED(CFG_MTK_WIFI_DRV_OWN_INT_MODE) */
-				GL_DEFAULT_RESET_TRIGGER(prAdapter,
-					RST_DRV_OWN_FAIL);
+				halTriggerDrvOwnReset(prAdapter);
 			}
 		}
 		GET_CURRENT_SYSTIME(&prAdapter->rLastOwnFailedLogTime);
@@ -537,7 +536,8 @@ static void halDriverOwnTimeout(struct ADAPTER *prAdapter,
  * \return (none)
  */
 /*----------------------------------------------------------------------------*/
-u_int8_t halSetDriverOwn(struct ADAPTER *prAdapter)
+u_int8_t halSetDriverOwn(struct ADAPTER *prAdapter,
+		enum ENUM_DRV_OWN_SRC eDrvOwnSrc)
 {
 	struct mt66xx_chip_info *prChipInfo;
 	struct BUS_INFO *prBusInfo;
@@ -565,6 +565,10 @@ u_int8_t halSetDriverOwn(struct ADAPTER *prAdapter)
 	KAL_HIF_OWN_LOCK(prAdapter);
 
 	GLUE_INC_REF_CNT(prAdapter->u4PwrCtrlBlockCnt);
+
+	prAdapter->eDrvOwnSrc = eDrvOwnSrc >= DRV_OWN_SRC_NUM ?
+				DRV_OWN_SRC_UNKNOWN :
+				eDrvOwnSrc;
 
 	if (prAdapter->fgIsFwOwn == FALSE)
 		goto end;
@@ -1220,7 +1224,7 @@ void halInitMsduTokenInfo(struct ADAPTER *prAdapter)
 	struct GL_HIF_INFO *prHifInfo;
 	struct MSDU_TOKEN_INFO *prTokenInfo;
 	struct MSDU_TOKEN_ENTRY *prToken;
-	uint32_t u4Idx, u4FailCnt = 0;
+	uint32_t u4Idx, u4FailCnt = 0, u4TokenId = 0;
 	uint32_t u4loopCnt = HIF_TX_MSDU_TOKEN_NUM;
 #if (CFG_MTK_WIFI_TX_CMA_MEM == 1)
 	unsigned long ulAllocTimeoutTime = 0;
@@ -1267,8 +1271,10 @@ void halInitMsduTokenInfo(struct ADAPTER *prAdapter)
 		}
 #endif /* !CFG_MTK_WIFI_TX_CMA_MEM */
 
-		prToken = &prTokenInfo->arToken[u4Idx];
-		if (!halInitOneMsduTokenInfo(prAdapter, prToken, u4Idx))
+		prToken = &prTokenInfo->arToken[u4TokenId];
+		if (halInitOneMsduTokenInfo(prAdapter, prToken, u4TokenId))
+			u4TokenId++;
+		else
 			u4FailCnt++;
 	}
 
@@ -4884,6 +4890,7 @@ void halHwRecoveryTimeout(unsigned long arg)
 	struct HIF_MEM_OPS *prMemOps;
 	struct ERR_RECOVERY_CTRL_T *prErrRecoveryCtrl;
 	uint32_t u4MaxSerTimeoutCnt = HIF_SER_MAX_TIMEOUT_CNT;
+	struct BUS_INFO *prBusInfo = NULL;
 
 	ASSERT(prGlueInfo);
 	prAdapter = prGlueInfo->prAdapter;
@@ -4893,6 +4900,7 @@ void halHwRecoveryTimeout(unsigned long arg)
 	prMemOps = &prHifInfo->rMemOps;
 	prChipInfo = prAdapter->chip_info;
 	prErrRecoveryCtrl = &prHifInfo->rErrRecoveryCtl;
+	prBusInfo = prAdapter->chip_info->bus_info;
 
 	halSerRecovery(prAdapter);
 
@@ -4902,6 +4910,10 @@ void halHwRecoveryTimeout(unsigned long arg)
 	       prErrRecoveryCtrl->u4Status,
 	       prErrRecoveryCtrl->u4BackupStatus,
 	       prErrRecoveryCtrl->u4TimeoutCnt);
+#if defined(_HIF_PCIE)
+	if (prBusInfo->dumpPcieMsiStatus)
+		prBusInfo->dumpPcieMsiStatus(prAdapter);
+#endif
 
 	if (prMemOps->getWifiMiscRsvEmi) {
 		struct HIF_MEM *prMem = prMemOps->getWifiMiscRsvEmi(
@@ -5013,6 +5025,12 @@ void halHwRecoveryFromError(struct ADAPTER *prAdapter)
 #endif
 			DBGLOG(HAL, INFO,
 				"SER(E) Host stop PDMA tx/rx ring operation & receive\n");
+
+#if defined(_HIF_PCIE)
+			if (prBusInfo->dumpPcieMsiStatus)
+				prBusInfo->dumpPcieMsiStatus(prAdapter);
+#endif
+
 			nicSerStopTxRx(prAdapter);
 #if (CFG_SUPPORT_CONNAC2X == 1)
 			/*get WFDMA HW data before Layer 1 SER*/
@@ -7182,4 +7200,34 @@ uint32_t halSetSuspendFlagToFw(struct ADAPTER *prAdapter,
 	}
 
 	return WLAN_STATUS_SUCCESS;
+}
+
+void halInitDrvOwnWork(struct GLUE_INFO *prGlueInfo)
+{
+	INIT_WORK(&prGlueInfo->rDrvOwnWork, halSetDrvOwnWork);
+}
+
+void halSetDrvOwnWork(struct work_struct *work)
+{
+	struct GLUE_INFO *prGlueInfo = NULL;
+
+	WIPHY_PRIV(wlanGetWiphy(), prGlueInfo);
+	if (prGlueInfo == NULL || prGlueInfo->prAdapter == NULL) {
+		DBGLOG(HAL, ERROR, "NULL adapter.\n");
+		return;
+	}
+	GL_DEFAULT_RESET_TRIGGER(prGlueInfo->prAdapter, RST_DRV_OWN_FAIL);
+}
+
+void halTriggerDrvOwnReset(struct ADAPTER *prAdapter)
+{
+	if (prAdapter == NULL)
+		return;
+	/* Trigger driver own reset if the caller is from conninfra
+	 * to avoid deadlock
+	 */
+	if (prAdapter->eDrvOwnSrc == DRV_OWN_SRC_WF_REG_START_WRAPPER)
+		schedule_work(&prAdapter->prGlueInfo->rDrvOwnWork);
+	else
+		GL_DEFAULT_RESET_TRIGGER(prAdapter, RST_DRV_OWN_FAIL);
 }

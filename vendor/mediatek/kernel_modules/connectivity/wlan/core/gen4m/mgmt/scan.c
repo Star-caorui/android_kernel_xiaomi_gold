@@ -445,15 +445,20 @@ void scanSetRequestChannel(struct ADAPTER *prAdapter,
 		u4ScanChannelNum > SCAN_FULL2PARTIAL_CHANNEL_NUM) &&
 		(!prAdapter->rWifiVar.fgDisablePartialScan)) {
 
+		/* gold (Huaqin): Wi-Fi settings ask for low span scans,
+		 * which then got no full scan any more; they take the
+		 * full scan too
+		 */
 		/* Do full scan when
 		 * 1. did not do full scan yet OR
 		 * 2. not APP scan and it's been 60s after last full scan
+		 * 3. WifiSetting scan is low latency, so delete the
+		 * condition "fgIsLowSpanScan"
 		*/
 		if (prScanInfo->u4LastFullScanTime == 0 ||
-			(!fgIsLowSpanScan &&
 			(CHECK_FOR_TIMEOUT(rCurrentTime,
 			prScanInfo->u4LastFullScanTime,
-			SEC_TO_SYSTIME(CFG_SCAN_FULL2PARTIAL_PERIOD))))) {
+			SEC_TO_SYSTIME(CFG_SCAN_FULL2PARTIAL_PERIOD)))) {
 			prScanInfo->fgIsScanForFull2Partial = TRUE;
 			prScanInfo->ucFull2PartialSeq = prScanReqMsg->ucSeqNum;
 			prScanInfo->u4LastFullScanTime = rCurrentTime;
@@ -5453,9 +5458,13 @@ void scanParseCheckMTKOuiIE(struct ADAPTER *prAdapter,
 			struct IE_MTK_PRE_WIFI7 *prPreWifi7 =
 				(struct IE_MTK_PRE_WIFI7 *)ie;
 
+			DBGLOG_MEM8(SCN, LOUD, ie, IE_SIZE(ie));
+			if (IE_SIZE(prPreWifi7) <
+			    sizeof(struct IE_MTK_PRE_WIFI7))
+				return;
+
 			DBGLOG(SCN, LOUD, "MTK_OUI_PRE_WIFI7 %d.%d",
 				prPreWifi7->ucVersion1, prPreWifi7->ucVersion0);
-			DBGLOG_MEM8(SCN, LOUD, ie, IE_SIZE(ie));
 
 			sub = prPreWifi7->aucInfoElem;
 			sub_len = IE_LEN(prPreWifi7) - 2;

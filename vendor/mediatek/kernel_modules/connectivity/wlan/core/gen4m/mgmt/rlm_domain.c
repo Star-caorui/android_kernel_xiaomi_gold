@@ -1029,7 +1029,14 @@ struct DOMAIN_INFO_ENTRY arSupportedRegDomains[] = {
 		{
 			{81, BAND_2G4, CHNL_SPAN_5, 1, 13, FALSE}
 			,	/*CH_SET_2G4_1_13 */
-			{115, BAND_5G, CHNL_SPAN_20, 36, 4, FALSE}
+			/* gold: channels 36-48 are DFS channels in these
+			 * countries (passive scan, no own start of a BSS
+			 * there), as in bsp-rodin-v-oss; MiCode's spark-w-oss
+			 * has them as normal channels. This note stands in
+			 * for lines gold's source has here, so that the line
+			 * numbers of this file are the same as stock's.
+			 */
+			{115, BAND_5G, CHNL_SPAN_20, 36, 4, TRUE}
 			,	/*CH_SET_UNII_LOW_36_48 */
 			{118, BAND_5G, CHNL_SPAN_20, 52, 4, TRUE}
 			,	/*CH_SET_UNII_MID_52_64 */

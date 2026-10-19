@@ -2199,6 +2199,14 @@ void rsnGenerateRSNIEImpl(struct ADAPTER *prAdapter,
 		prWpaInfo = aisGetWpaInfo(prAdapter, ucBssIndex);
 
 		entry = aisSearchPmkidEntry(prAdapter, prStaRec, ucBssIndex);
+		/* aisSearchPmkidEntry() leaves out an invalid PMK only;
+		 * gold's driver also leaves the PMKID out for SAE
+		 */
+		if (prStaRec->ucAuthAlgNum == AUTH_ALGORITHM_NUM_SAE) {
+			DBGLOG(RSN, INFO,
+				"Do not apply PMKID in RSNIE if auth type is SAE");
+			entry = NULL;
+		}
 
 		/* Fill PMKID Count and List field */
 		if (entry) {

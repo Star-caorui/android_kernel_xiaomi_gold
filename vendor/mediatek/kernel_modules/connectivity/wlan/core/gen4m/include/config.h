@@ -1011,12 +1011,12 @@
  *------------------------------------------------------------------------------
  */
 #ifndef CFG_P2P_SCAN_REPORT_ALL_BSS
-#define CFG_P2P_SCAN_REPORT_ALL_BSS            0
+#define CFG_P2P_SCAN_REPORT_ALL_BSS            1
 #endif
 
 /* Allow connection with no P2P IE device */
 #ifndef CFG_P2P_CONNECT_ALL_BSS
-#define CFG_P2P_CONNECT_ALL_BSS            0
+#define CFG_P2P_CONNECT_ALL_BSS            1
 #endif
 
 /* Allow setting max P2P GO client count */

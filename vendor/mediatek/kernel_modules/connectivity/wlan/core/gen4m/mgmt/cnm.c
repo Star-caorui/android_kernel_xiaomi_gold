@@ -2409,7 +2409,8 @@ omac_choosed:
 			prBssInfo->u4TxStartTh = prWifiVar->u4NetifStartTh;
 			for (i = 0; i < MAX_KEY_NUM; i++) {
 				prBssInfo->ucBMCWlanIndexSUsed[i] = FALSE;
-				prBssInfo->ucBMCWlanIndexS[i] = WTBL_RESERVED_ENTRY;
+				prBssInfo->ucBMCWlanIndexS[i] =
+					WTBL_RESERVED_ENTRY;
 				prBssInfo->wepkeyUsed[i] = FALSE;
 			}
 #if CFG_SUPPORT_DFS

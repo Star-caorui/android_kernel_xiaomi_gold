@@ -1606,13 +1606,16 @@ static void rlmFillExtCapIE(struct ADAPTER *prAdapter,
 	} else
 		DBGLOG(RLM, WARN, "extCapConn = NULL!");
 
-	/* Disable BTM cap for WPA3 cert. */
-	if (IS_BSS_AIS(prBssInfo)
-		&& IS_FEATURE_DISABLED(prAdapter->rWifiVar.ucBtmCap)) {
+	/* Disable BTM cap for WPA3 cert and sub Wi-Fi. */
+	if (IS_BSS_AIS(prBssInfo) &&
+	    (IS_FEATURE_DISABLED(prAdapter->rWifiVar.ucBtmCap) ||
+	     AIS_INDEX(prAdapter, prBssInfo->ucBssIndex) !=
+			AIS_DEFAULT_INDEX)) {
 		CLEAR_EXT_CAP(prExtCap->aucCapabilities,
 					ELEM_MAX_LEN_EXT_CAP,
 					ELEM_EXT_CAP_BSS_TRANSITION_BIT);
-		DBGLOG(RLM, INFO, "Disable BTM cap due to wifi.cfg");
+		DBGLOG(RLM, INFO,
+			"Disable BTM cap due to wifi.cfg or sub Wi-Fi");
 	}
 
 	while (prExtCap->ucLength > 0 &&
@@ -3054,9 +3057,13 @@ void rlmParseMtkOui(struct ADAPTER *prAdapter, struct STA_RECORD *prStaRec,
 			struct IE_MTK_PRE_WIFI7 *prPreWifi7 =
 				(struct IE_MTK_PRE_WIFI7 *)ie;
 
+			DBGLOG_MEM8(RLM, TRACE, ie, IE_SIZE(ie));
+			if (IE_SIZE(prPreWifi7) <
+			    sizeof(struct IE_MTK_PRE_WIFI7))
+				return;
+
 			DBGLOG(RLM, TRACE, "MTK_OUI_PRE_WIFI7 %d.%d",
 				prPreWifi7->ucVersion1, prPreWifi7->ucVersion0);
-			DBGLOG_MEM8(RLM, TRACE, ie, IE_SIZE(ie));
 
 			sub = prPreWifi7->aucInfoElem;
 			sub_len = IE_LEN(prPreWifi7) - 2;
@@ -5413,8 +5420,8 @@ void rlmProcessAssocRsp(struct ADAPTER *prAdapter, struct SW_RFB *prSwRfb,
 	if (fgEfuseCtrlAxOn == 1) {
 		fgNewSRParam = heRlmRecHeSRParams(prAdapter, prBssInfo,
 						prSwRfb, pucIE, u2IELength);
-		/* ASSERT(fgNewSRParam); */
-		nicRlmUpdateSRParams(prAdapter, prBssInfo->ucBssIndex);
+		if (fgNewSRParam)
+			nicRlmUpdateSRParams(prAdapter, prBssInfo->ucBssIndex);
 	}
 #endif
 #if (CFG_SUPPORT_802_11BE == 1)
@@ -6332,7 +6339,9 @@ static void rlmBssReset(struct ADAPTER *prAdapter, struct BSS_INFO *prBssInfo)
 	prBssInfo->fgIsOpChangeTxNss = FALSE;
 
 	/* STBC MRC */
-	rlmUpdateStbcSetting(prAdapter, prBssInfo->ucBssIndex, 0, FALSE);
+	if (prBssInfo->eForceStbc != STBC_MRC_STATE_DISABLED)
+		rlmUpdateStbcSetting(
+			prAdapter, prBssInfo->ucBssIndex, 0, FALSE);
 	prBssInfo->eForceStbc = STBC_MRC_STATE_DISABLED;
 	prBssInfo->eForceMrc = STBC_MRC_STATE_DISABLED;
 
