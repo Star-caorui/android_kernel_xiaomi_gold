@@ -1,0 +1,139 @@
+name: Release
+
+# Builds gold's kernel from the commit this runs on, as LineageOS's build does (the kernel manifest's lineage-24.0,
+# build_mgk_64_k66.sh, on the GKI build it names), lays it out as build_kernel would for a device tree to take as
+# prebuilt (the Lay it out step), and commits that to the release branch with a tag. Each step adds a line to the
+# run's summary. Started by hand only.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  id-token: write
+  attestations: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+env:
+  MANIFEST: https://github.com/Star-caorui/android_kernel_xiaomi_gold_manifest
+  MANIFEST_BRANCH: lineage-24.0
+  # the free runner's root disk, once the preinstalled toolchains we do not use are gone
+  W: /home/runner/k
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 360
+    steps:
+      - name: Make room
+        run: |
+          s=$(date +%s)
+          # Ubuntu 24.04 keeps unprivileged users out of user namespaces, which Bazel's linux-sandbox needs
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/local/.ghcup \
+            /opt/hostedtoolcache/CodeQL /usr/share/swift /usr/local/share/powershell /usr/local/share/chromium
+          sudo docker image prune -af > /dev/null
+          {
+            echo "| Step | Time | |"
+            echo "| --- | --- | --- |"
+            echo "| Make room | $(( ($(date +%s) - s) / 60 ))m $(( ($(date +%s) - s) % 60 ))s | $(nproc) CPUs, $(free -g | awk '/^Mem:/ { print $2 }') GiB, $(df -BG --output=avail / | tail -1 | tr -d ' ')B free |"
+          } >> $GITHUB_STEP_SUMMARY
+
+      - name: Sync
+        run: |
+          s=$(date +%s)
+          sudo curl -sfo /usr/local/bin/repo https://storage.googleapis.com/git-repo-downloads/repo
+          sudo chmod +x /usr/local/bin/repo
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          mkdir -p $W && cd $W
+          repo init -q -u $MANIFEST -b $MANIFEST_BRANCH --depth=1 --no-use-superproject
+          repo sync -q -c --no-tags --force-sync -j8
+          # the module sources at the commit this runs on, not whatever the branch has by now
+          git -C gold fetch -q --depth=1 github $GITHUB_SHA
+          git -C gold checkout -q --detach $GITHUB_SHA
+          repo manifest -r -o $RUNNER_TEMP/manifest.xml
+          echo "| Sync | $(( ($(date +%s) - s) / 60 ))m $(( ($(date +%s) - s) % 60 ))s | $(du -sh --exclude=.repo $W | cut -f1) checked out |" >> $GITHUB_STEP_SUMMARY
+
+      - name: Build
+        run: |
+          s=$(date +%s)
+          cd $W
+          id=$(sed -n 's/^GKI_BUILD=\([0-9]*\)$/\1/p' manifest/build_mgk_64_k66.sh)
+          [ -n "$id" ]
+          echo "GKI_BUILD=$id" >> $GITHUB_ENV
+          ./build_mgk_64_k66.sh
+          echo "| Build | $(( ($(date +%s) - s) / 60 ))m $(( ($(date +%s) - s) % 60 ))s | GKI build $id, $(ls out/mgk_64_k66/dist | wc -l) files, $(df -BG --output=avail / | tail -1 | tr -d ' ')B left |" >> $GITHUB_STEP_SUMMARY
+
+      - name: Lay it out
+        run: |
+          s=$(date +%s)
+          D=$W/out/mgk_64_k66/dist
+          # the kernel's own llvm-strip, the clang Kleaf built with
+          strip=$W/prebuilts/clang/host/linux-x86/clang-$(sed -n 's/^CLANG_VERSION=//p' $W/kernel-6.6/build.config.constants)/bin/llvm-strip
+          # flat, as build_kernel copies it into TARGET_KERNEL_DIR; the modules MediaTek's build made lose their debug
+          # sections, as Android's build strips them when it installs them, which installs the same either way; the GKI
+          # modules, Google's and signed, stay as they are
+          mkdir $RUNNER_TEMP/release && cd $RUNNER_TEMP/release
+          cp $D/* .
+          for f in Image.gz boot.img mt6833.dtb dtbo.img kernel-uapi-headers.tar.gz system_dlkm.modules.load; do [ -f $f ]; done
+          for m in *.ko; do grep -qxF $m system_dlkm.modules.load || $strip --strip-debug $m; done
+          chmod 644 *
+          cp $W/gold/.github/release/README.md $RUNNER_TEMP/manifest.xml .
+          echo "| Lay it out | $(( ($(date +%s) - s) / 60 ))m $(( ($(date +%s) - s) % 60 ))s | $(ls $RUNNER_TEMP/release | wc -l) files, $(du -sh $RUNNER_TEMP/release | cut -f1) |" >> $GITHUB_STEP_SUMMARY
+
+      - name: Sign where the files come from
+        uses: actions/attest-build-provenance@v4
+        with:
+          subject-path: |
+            ${{ runner.temp }}/release/Image.gz
+            ${{ runner.temp }}/release/boot.img
+            ${{ runner.temp }}/release/mt6833.dtb
+            ${{ runner.temp }}/release/dtbo.img
+            ${{ runner.temp }}/release/kernel-uapi-headers.tar.gz
+            ${{ runner.temp }}/release/*.ko
+
+      - name: Commit it to the release branch and tag it
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          s=$(date +%s)
+          R=$RUNNER_TEMP/rel
+          git init -q $R && cd $R
+          git remote add origin https://github.com/$GITHUB_REPOSITORY
+          auth="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          g() { git -c http.https://github.com/.extraheader="$auth" "$@"; }
+          # one commit per build on top of the branch's last; the branch shares no history with the sources
+          parent=()
+          if g ls-remote --exit-code --heads origin release > /dev/null; then
+            g fetch -q --depth=1 origin release
+            parent=(-p FETCH_HEAD)
+          fi
+          cp -a $RUNNER_TEMP/release/. .
+          git add -A
+          tree=$(git write-tree)
+          if [ ${#parent[@]} -gt 0 ] && [ "$tree" = "$(git rev-parse 'FETCH_HEAD^{tree}')" ]; then
+            echo "| Commit | $(( $(date +%s) - s ))s | the release branch has this build already |" >> $GITHUB_STEP_SUMMARY
+            exit 0
+          fi
+          day=$(TZ=Asia/Shanghai date +%Y%m%d)
+          n=$(g ls-remote --tags origin "refs/tags/kernel-$day*" | grep -vc '\^{}$' || true)
+          tag=kernel-$day$(printf %02d $((n + 1)))
+          src=$(git -C $W/gold log -1 --format='%h %s' $GITHUB_SHA)
+          {
+            echo "$tag: lineage-24.0 ${src%% *}, GKI build $GKI_BUILD"
+            echo
+            echo "Built by $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID from:"
+            echo
+            echo "  lineage-24.0  $GITHUB_SHA ${src#* }"
+            echo "  manifest      $(git -C $W/.repo/manifests rev-parse HEAD) ($MANIFEST_BRANCH)"
+            echo "  GKI build     $GKI_BUILD"
+            echo
+            echo "manifest.xml lists every source and tool at the commit the build used."
+          } > $RUNNER_TEMP/message
+          commit=$(git commit-tree $tree "${parent[@]}" -F $RUNNER_TEMP/message)
+          git tag -a $tag $commit -F $RUNNER_TEMP/message
+          g push origin $commit:refs/heads/release refs/tags/$tag
+          echo "| Commit | $(( $(date +%s) - s ))s | [\`$tag\`]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/tree/$tag) on \`release\` |" >> $GITHUB_STEP_SUMMARY
