@@ -8,7 +8,7 @@ TARGET_DEVICE="mgk_64_k66"
 ROOT_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "${ROOT_DIR}"
 
-KERNEL_MODULES_DIR="$(find "${ROOT_DIR}" -maxdepth 1 -type d -name 'kernel_device_modules-*' | sort -V | tail -n1)"
+KERNEL_MODULES_DIR="$(find -L "${ROOT_DIR}" -maxdepth 1 -type d -name 'kernel_device_modules-*' | sort -V | tail -n1)"
 if [ -z "${KERNEL_MODULES_DIR}" ] || [ ! -f "${KERNEL_MODULES_DIR}/build.sh" ]; then
     echo "error: no kernel_device_modules-*/build.sh found for MGKI build" >&2
     exit 1
