@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<manifest>
+  <remote name="aosp" fetch="https://android.googlesource.com/"/>
+  <remote name="github" fetch="https://github.com/" review="review.lineageos.org"/>
+  
+  <default remote="aosp" revision="main-kernel-build-2024" sync-j="4"/>
+  
+  <project name="LineageOS/android_kernel_build_bazel_mgk_rules" path="build/bazel_mgk_rules" remote="github" revision="d176df0efa9313cbad2d9002ce86fb77b4ea1f76" upstream="refs/heads/lineage-24.0" dest-branch="refs/heads/lineage-24.0" sync-c="true">
+    <linkfile src="kleaf/bazel.WORKSPACE" dest="WORKSPACE"/>
+  </project>
+  <project name="Star-caorui/android_kernel_xiaomi_gold" path="gold" remote="github" revision="849db7a02b144992388c3fd64cad7312ad3d3f57" upstream="refs/heads/lineage-24.0" dest-branch="refs/heads/lineage-24.0" sync-c="true">
+    <linkfile src="kernel_device_modules-6.6" dest="kernel_device_modules-6.6"/>
+    <linkfile src="vendor/mediatek/kernel_modules" dest="vendor/mediatek/kernel_modules"/>
+    <linkfile src="vendor/huaqin/kernel_modules" dest="vendor/huaqin/kernel_modules"/>
+    <linkfile src="kernel_device_modules-6.6/build.config.gold" dest="build.config"/>
+    <linkfile src="kernel_device_modules-6.6/build_mgk_64_k66.sh" dest="build_kernel_device_modules.sh"/>
+  </project>
+  <project name="Star-caorui/android_kernel_xiaomi_gold_manifest" path="manifest" remote="github" revision="37af10bbd850364efc9a5b6bad8511992bccd2fa" upstream="refs/heads/lineage-24.0" dest-branch="refs/heads/lineage-24.0">
+    <linkfile src="build_mgk_64_k66.sh" dest="build_mgk_64_k66.sh"/>
+  </project>
+  <project name="kernel/build" path="build/kernel" revision="81ddfc7c76ff04134389bc93d3eccd078f093839" upstream="main-kernel-build-2024" dest-branch="main-kernel-build-2024" groups="kernel-platform,kernel-platform-66">
+    <linkfile src="kleaf/bazel.sh" dest="tools/bazel"/>
+    <linkfile src="kleaf/bzlmod/bazel.MODULE.bazel" dest="MODULE.bazel"/>
+    <linkfile src="kleaf/bzlmod/bazel.WORKSPACE.bzlmod" dest="WORKSPACE.bzlmod"/>
+  </project>
+  <project name="kernel/common" path="kernel-6.6" revision="1a04d7d18c1d8ba591bc372781ddbe5bf49a30f0" upstream="refs/tags/android15-6.6-2026-10_r3" dest-branch="refs/tags/android15-6.6-2026-10_r3" clone-depth="1"/>
+  <project name="kernel/common-modules/trusty" path="common-modules/trusty" revision="98978dd77173b8b4ce131b29752a882913a9bac3" upstream="main-kernel-build-2024" dest-branch="main-kernel-build-2024"/>
+  <project name="kernel/common-modules/virtual-device" path="common-modules/virtual-device" revision="211d96f861e1d6061ecb6bbe6e289ce8bf144290" upstream="android15-6.6" dest-branch="android15-6.6"/>
+  <project name="kernel/common-modules/wonder" path="common-modules/wonder" revision="f6b4681a67b1d885b5d424834849aa27eaf2f0cd" upstream="android15-6.6" dest-branch="android15-6.6"/>
+  <project name="kernel/configs" revision="bd79f38685cf939ab836dd8ddd2e01506ccff47a" upstream="main" dest-branch="main"/>
+  <project name="kernel/prebuilts/build-tools" path="prebuilts/kernel-build-tools" revision="b46264b70e3cdf70d08c9ae2df6ea3002b242ebc" upstream="main-kernel-build-2024" dest-branch="main-kernel-build-2024" groups="ddk" clone-depth="1"/>
+  <project name="platform/build/bazel_common_rules" path="build/bazel_common_rules" revision="9530bee133971f25758a2e1085755200999ca1bf" upstream="main-kernel-build-2024" dest-branch="main-kernel-build-2024" groups="ddk"/>
+  <project name="platform/external/bazel-skylib" path="external/bazel-skylib" revision="6b103c40d8113f001475d5e13672922ef2aa0e5a" upstream="main-kernel-build-2024" dest-branch="main-kernel-build-2024" groups="ddk-external"/>
+  <project name="platform/external/bazelbuild-apple_support" path="external/bazelbuild-apple_support" revision="f6003e1e3763f8aad9fb9acae79cfa5fff9ae988" upstream="main-kernel-build-2024" dest-branch="main-kernel-build-2024" groups="ddk-external"/>
+  <project name="platform/external/bazelbuild-bazel-central-registry" path="external/bazelbuild-bazel-central-registry" revision="7018452ffac4fc070b29d5c5c872bac3c746a06a" upstream="main-kernel-build-2024" dest-branch="main-kernel-build-2024" groups="ddk-external"/>
+  <project name="platform/external/bazelbuild-platforms" path="external/bazelbuild-platforms" revision="04d937168075c80205c96f31752000e9de759adb" upstream="main-kernel-build-2024" dest-branch="main-kernel-build-2024" groups="ddk-external"/>
+  <project name="platform/external/bazelbuild-rules_cc" path="external/bazelbuild-rules_cc" revision="5d626dcf48e0e97933b48456a86966971799c9e9" upstream="main-kernel-build-2024" dest-branch="main-kernel-build-2024" groups="ddk-external"/>
+  <project name="platform/external/bazelbuild-rules_java" path="external/bazelbuild-rules_java" revision="8e548c7053dffd1717d565f0409a88992f401da1" upstream="main-kernel-build-2024" dest-branch="main-kernel-build-2024" groups="ddk-external"/>
+  <project name="platform/external/bazelbuild-rules_license" path="external/bazelbuild-rules_license" revision="f578df4fd057ffe2023728444759535685631548" upstream="main-kernel-build-2024" dest-branch="main-kernel-build-2024" groups="ddk-external"/>
+  <project name="platform/external/bazelbuild-rules_pkg" path="external/bazelbuild-rules_pkg" revision="f91631bcb97956f7bdf4cdf7523d5d2e63f85b5c" upstream="main-kernel-build-2024" dest-branch="main-kernel-build-2024" groups="ddk-external"/>
+  <project name="platform/external/bazelbuild-rules_python" path="external/bazelbuild-rules_python" revision="f71847ac898655b67634bb14e77a7408c4fb5e00" upstream="main-kernel-build-2024" dest-branch="main-kernel-build-2024" groups="ddk-external"/>
+  <project name="platform/external/libcap" path="external/libcap" revision="8729338c078737da57a8b63ee88016799dfb4cdb" upstream="main-kernel-build-2024" dest-branch="main-kernel-build-2024"/>
+  <project name="platform/external/libcap-ng" path="external/libcap-ng" revision="2bcc92ae19481dd2b8d3ce3abdfbbee49261abe6" upstream="main-kernel-build-2024" dest-branch="main-kernel-build-2024"/>
+  <project name="platform/external/lz4" path="external/lz4" revision="124599333514066524f55f5f41fbf0d46212e598" upstream="main-kernel-build-2024" dest-branch="main-kernel-build-2024" groups="ddk"/>
+  <project name="platform/external/pigz" path="external/pigz" revision="9bc9fa17d499ddde88b77820f6d063e16c0cdd42" upstream="main-kernel-build-2024" dest-branch="main-kernel-build-2024" groups="ddk"/>
+  <project name="platform/external/python/absl-py" path="external/python/absl-py" revision="9ae5a78fc57c3cd539398373ae39601a8b923e62" upstream="main-kernel-build-2024" dest-branch="main-kernel-build-2024" groups="ddk-external"/>
+  <project name="platform/external/toybox" path="external/toybox" revision="91f90361fc563025e6d152d68d2072109500d602" upstream="main-kernel-build-2024" dest-branch="main-kernel-build-2024" groups="ddk"/>
+  <project name="platform/external/virtio-media" path="common-modules/virtio-media" revision="9b36409c9bc97ca7411751185f7139f05ac990ca" upstream="main-kernel-build-2024" dest-branch="main-kernel-build-2024"/>
+  <project name="platform/external/zlib" path="external/zlib" revision="b34cd2e4371556e913ad9801a924a891c74d1463" upstream="main-kernel-build-2024" dest-branch="main-kernel-build-2024" groups="ddk"/>
+  <project name="platform/external/zopfli" path="external/zopfli" revision="36c79f00e5229800d2aaa13fc42c301ec8ef1153" upstream="main-kernel-build-2024" dest-branch="main-kernel-build-2024" groups="ddk"/>
+  <project name="platform/prebuilts/build-tools" path="prebuilts/build-tools" revision="bfa65e7422cc88dc64ef3ca224daf214a77fb4d5" upstream="main-kernel-build-2024" dest-branch="main-kernel-build-2024" groups="ddk" clone-depth="1"/>
+  <project name="platform/prebuilts/clang-tools" path="prebuilts/clang-tools" revision="1634c6a556d1f2c24897bf74156c6449486e8941" upstream="main-kernel-build-2024" dest-branch="main-kernel-build-2024" clone-depth="1"/>
+  <project name="platform/prebuilts/clang/host/linux-x86" path="prebuilts/clang/host/linux-x86" revision="62dc563017359bca29c4a08f5f27d8ecae763462" upstream="main-kernel-build-2024" dest-branch="main-kernel-build-2024" groups="ddk" clone-depth="1"/>
+  <project name="platform/prebuilts/gcc/linux-x86/host/x86_64-linux-glibc2.17-4.8" path="prebuilts/gcc/linux-x86/host/x86_64-linux-glibc2.17-4.8" revision="739d8a41b6096d384338a62995a04739aff8693d" upstream="main-kernel-build-2024" dest-branch="main-kernel-build-2024" groups="ddk" clone-depth="1"/>
+  <project name="platform/prebuilts/jdk/jdk11" path="prebuilts/jdk/jdk11" revision="c6c90521b7c317f13d41bbd9336a8d45ee202cec" upstream="main-kernel-build-2024" dest-branch="main-kernel-build-2024" clone-depth="1"/>
+  <project name="platform/system/tools/mkbootimg" path="tools/mkbootimg" revision="f5c284e8998dd8a085cf027bb518b6c2b84cf744" upstream="main-kernel-build-2024" dest-branch="main-kernel-build-2024"/>
+  <project name="toolchain/prebuilts/ndk/r26" path="prebuilts/ndk-r26" revision="abad5cbde7eb9684e37d7569810743a8a34826af" upstream="main-kernel-build-2024" dest-branch="main-kernel-build-2024" groups="ddk" clone-depth="1"/>
+</manifest>
