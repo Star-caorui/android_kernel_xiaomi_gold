@@ -90,7 +90,7 @@ done
 # versions (checked against stock's), so the kernel built above gives the versions.
 K630=$R/kernel-6.6.30; KO630=$OUT/KERNEL_OBJ-6.6.30; REL630=6.6.30-android15-8-g41085fa58973-4k
 # (the kernel alone: without the device modules' Kconfig, which only the build of the device modules needs)
-mk630() { make -j$JOBS ARCH=arm64 CLANG_TRIPLE=aarch64-linux-gnu- CC=clang LD=ld.lld LLVM=1 LLVM_IAS=1 KERNELRELEASE=$REL630 -C $K630 O=$KO630 "$@"; }
+mk630() { make -j$JOBS PAHOLE=$KBT/bin/pahole ARCH=arm64 CLANG_TRIPLE=aarch64-linux-gnu- CC=clang LD=ld.lld LLVM=1 LLVM_IAS=1 KERNELRELEASE=$REL630 -C $K630 O=$KO630 "$@"; }
 rm -rf $KO630; mkdir -p $KO630; cp $K630/arch/arm64/configs/gki_defconfig $KO630/.config; mk630 olddefconfig > $OUT/logs/config-6.6.30.log 2>&1
 for c in mgk_64_k66.config mt6833_overlay.config gold.config; do
   (cd $KO630 && $K630/scripts/kconfig/merge_config.sh -m -O $KO630 $KO630/.config $R/$DM/kernel/configs/$c) >> $OUT/logs/config-6.6.30.log 2>&1
