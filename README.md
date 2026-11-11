@@ -8,7 +8,6 @@ gives it:
 | `kernel_device_modules-6.6` | MediaTek's device modules, gold's device tree blob and overlay |
 | `vendor/mediatek/kernel_modules` | MediaTek's other modules (connectivity, GPU, …) |
 | `vendor/huaqin/kernel_modules` | Huaqin's drivers |
-| `vendor/xiaomi/kernel_modules` | Xiaomi's Millet |
 
 | Branch | What |
 | --- | --- |
